@@ -11,16 +11,30 @@ custom_config = r'--oem 3 --psm 6'
 
 # Función para extraer el número de orden de la factura
 def extraer_numero_orden(texto_extraido):
+    """
+    Busca el número de orden en el texto extraído de la factura.
+    Utiliza dos patrones clave para diferentes formatos.
+    """
     print("\nBuscando número de orden...")
-    # Ajustar la expresión regular para detectar líneas con "N", "No.", etc., seguido de números
-    match = re.search(r"(N[°o]?\.?\s*\d+)", texto_extraido, re.IGNORECASE)
-    if match:
-        numero_orden = re.sub(r"[^\d]", "", match.group(1))  # Extraer solo el número
-        print(f"Número de orden encontrado: {numero_orden}")
-        return numero_orden
-    else:
-        print("No se encontró un número de orden en el texto extraído.")
-        return None
+
+    # Lista de patrones seleccionados
+    patrones = [
+        r"\bN[°oº*]?\s*(\d{4,})\b",  # Genérico: "N° 43564893" o "N 12345"
+        r"\bN[°oº*]?\s*\d*\s*(\d{4,})\b",  # Más flexible: "N2 43564893"
+    ]
+
+    # Probar cada patrón hasta encontrar una coincidencia
+    for patron in patrones:
+        match = re.search(patron, texto_extraido, re.IGNORECASE)
+        if match:
+            numero_orden = match.group(1)  # Capturar solo el número
+            print(f"Número de orden encontrado: {numero_orden}")
+            return numero_orden
+
+    # Si no encuentra coincidencias
+    print("No se encontró un número de orden en el texto extraído.")
+    return None
+
 
 
 # Procesar factura y extraer texto
@@ -29,6 +43,7 @@ def procesar_factura(imagen_path):
     try:
         # Leer y preprocesar la imagen
         img = cv2.imread(imagen_path, cv2.IMREAD_GRAYSCALE)
+
         img = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 
         texto_extraido = pytesseract.image_to_string(img, lang="spa", config=custom_config)
@@ -100,6 +115,7 @@ def validar_factura_vs_excel(texto_factura, productos, datos_adicionales):
 
                     # Capturar todos los números en la línea
                     numeros = re.findall(r"[\d]+(?:[.,][\d]+)?", linea)
+                    numeros = [num for num in numeros if num != codigo_producto]
                     print(f"???????\n{numeros}")  # Depuración: Mostrar los números capturados
                     
                     if numeros:
@@ -178,4 +194,4 @@ def app(imagen_factura, carpeta_excel):
 
 
 # Ejecutar flujo con ejemplos
-app("facturas/3.jpg", "ordenes")
+app("facturas/8.jpg", "ordenes")
